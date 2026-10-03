@@ -1,0 +1,35 @@
+(1) Memory per single instance (from log-normal-1.out / smem output):
+    USS = <fill in> bytes
+    RSS = <fill in> bytes
+
+
+
+(2) Memory per instance with 5 processes (from log-normal-5.out):
+    USS per process = <fill in> bytes
+    RSS per process = <fill in> bytes
+    Total RSS across 5 processes is roughly 5x the single-process RSS,
+    showing that each process holds a private copy of the image.
+
+
+
+
+(3) mmap vs normal convolution (log-mmap-5.out vs log-normal-5.out):
+    With mmap, all 5 processes share the same physical pages of the input
+    image because each maps the same file read-only with MAP_PRIVATE.
+    As a result, USS per process drops dramatically compared to the normal
+    case, where each process allocates its own 4096x4096 pixel buffer.
+    RSS is still counted for each process (shared pages), but the total
+    physical memory pressure is much lower than 5x the image size.
+    Execution time is similar in both cases; the win is memory, not speed.
+
+
+
+
+(4) Major vs minor page faults:
+    A minor page fault occurs when the required page is already present in
+    physical memory (e.g., in the page cache) and only the process's page
+    table needs updating. No disk I/O is involved.
+    A major page fault occurs when the page must be fetched from disk,
+    which is much slower. Our fault mode triggers major faults by writing
+    to a freshly-truncated large mmap'd file, forcing the kernel to
+    allocate and initialize physical pages from the disk-backed file.
